@@ -1,0 +1,12 @@
+---
+
+Release to pypi:
+  script:
+    - python setup.py sdist bdist_wheel
+    - twine upload -u $PYPI_USER -p $PYPI_PASSWORD dist/*
+  tags:
+    - python3.5
+  only:
+    - /^v[\d\.]+.*$/
+    - master
+  allow_failure: true
