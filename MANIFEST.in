@@ -1,0 +1,2 @@
+include versioneer.py
+include pytest_curio/_version.py
