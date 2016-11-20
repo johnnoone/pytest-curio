@@ -29,12 +29,7 @@ def pytest_pyfunc_call(pyfuncitem):
         funcargs = pyfuncitem.funcargs
         testargs = {arg: funcargs[arg]
                     for arg in pyfuncitem._fixtureinfo.argnames}
-        fut = pyfuncitem.obj(**testargs)
-        task = kernel.add_task(fut)
-        kernel.run(log_errors=False)
-        if task.exc_info:
-            tp, value, tb = task.exc_info
-            raise value.with_traceback(tb)
+        kernel.run(pyfuncitem.obj(**testargs))
         return True
 
 
