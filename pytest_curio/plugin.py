@@ -29,7 +29,40 @@ def pytest_pyfunc_call(pyfuncitem):
         funcargs = pyfuncitem.funcargs
         testargs = {arg: funcargs[arg]
                     for arg in pyfuncitem._fixtureinfo.argnames}
-        kernel.run(pyfuncitem.obj(**testargs))
+        with kernel:
+            # If the async function passed to kernel.run() raises an
+            # exception, then kernel.run() wraps this in a curio.TaskError and
+            # raises that. This is annoying for us, since it prevents pytest
+            # from being able to "see" AssertionError exceptions and handle
+            # them properly. So we want to unwrap the TaskError and re-raise
+            # the original exception.
+            #
+            # You would think we could just do:
+            #
+            #   except curio.TaskError as task_error:
+            #       raise task_error.__cause__
+            #
+            # But this doesn't work. The problem is that if we call 'raise'
+            # inside the 'except:' block, then Python will set the __context__
+            # attribute on our unwrapped exception to point to the
+            # task_error. This creates a reference loop:
+            #
+            #   task_error.__cause__.__context__ is task_error
+            #
+            # It turns out that loops like this make pytest's traceback
+            # printing code Very Unhappy.
+            #
+            # To avoid this, we save off the exception to a local variable,
+            # and then re-raise it from outside the except: block.
+            task_error = None
+            try:
+                kernel.run(pyfuncitem.obj(**testargs))
+            except curio.TaskError as exc:
+                # We can't just do 'as task_error', because the variable
+                # passed to 'as' goes away when the except: block finishes.
+                task_error = exc
+            if task_error is not None:
+                raise task_error.__cause__
         return True
 
 
