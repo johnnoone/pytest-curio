@@ -29,12 +29,7 @@ def pytest_pyfunc_call(pyfuncitem):
         funcargs = pyfuncitem.funcargs
         testargs = {arg: funcargs[arg]
                     for arg in pyfuncitem._fixtureinfo.argnames}
-        fut = pyfuncitem.obj(**testargs)
-        task = kernel.add_task(fut)
-        kernel.run(log_errors=False)
-        if task.exc_info:
-            tp, value, tb = task.exc_info
-            raise value.with_traceback(tb)
+        kernel.run(pyfuncitem.obj(**testargs))
         return True
 
 
@@ -48,6 +43,5 @@ def pytest_runtest_setup(item):
 def kernel(request):
     """Create an instance of the default kernel for each test case."""
     kernel = curio.Kernel()
-
-    # request.addfinalizer(kernel.shutdown)
+    request.addfinalizer(lambda :kernel.run(shutdown=True))
     return kernel
