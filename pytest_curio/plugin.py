@@ -44,6 +44,6 @@ def pytest_runtest_setup(item):
 @pytest.fixture(scope="session")
 def kernel(request):
     """Create an instance of the default kernel for each test case."""
-    kernel = Kernel()
+    kernel = curio.Kernel()
     request.addfinalizer(lambda: kernel.run(shutdown=True))
     return kernel
