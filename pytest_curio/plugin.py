@@ -9,14 +9,13 @@ def pytest_configure(config):
                             "mark the test as a coroutine, it will be "
                             "run using a curio kernel")
 
-
 @pytest.mark.tryfirst
 def pytest_pycollect_makeitem(collector, name, obj):
-    if collector.funcnamefilter(name) and inspect.iscoroutinefunction(obj):
-        item = pytest.Function(name, parent=collector)
-        if 'curio' in item.keywords:
+    """A pytest hook to collect curio coroutines."""
+    if collector.funcnamefilter(name) and curio.meta.iscoroutinefunction(obj):
+        item = pytest.Function.from_parent(collector, name=name)
+        if "curio" in item.keywords:
             return list(collector._genfunctions(name, obj))
-
 
 @pytest.mark.tryfirst
 def pytest_pyfunc_call(pyfuncitem):
@@ -27,27 +26,24 @@ def pytest_pyfunc_call(pyfuncitem):
     if 'curio' in pyfuncitem.keywords:
         kernel = pyfuncitem.funcargs['kernel']
         funcargs = pyfuncitem.funcargs
-        testargs = {arg: funcargs[arg]
-                    for arg in pyfuncitem._fixtureinfo.argnames}
-        fut = pyfuncitem.obj(**testargs)
-        task = kernel.add_task(fut)
-        kernel.run(log_errors=False)
-        if task.exc_info:
-            tp, value, tb = task.exc_info
-            raise value.with_traceback(tb)
+        testargs = {arg: funcargs[arg] for arg in pyfuncitem._fixtureinfo.argnames}
+        try:
+            kernel.run(pyfuncitem.obj(**testargs))
+        except curio.TaskError as task_error:
+            # raise the cause
+            raise task_error.__cause__
         return True
 
 
 def pytest_runtest_setup(item):
+    # inject a kernel fixture for all async tests for curio
     if 'curio' in item.keywords and 'kernel' not in item.fixturenames:
-        # inject a kernel fixture for all async tests
         item.fixturenames.append('kernel')
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def kernel(request):
     """Create an instance of the default kernel for each test case."""
-    kernel = curio.Kernel()
-
-    # request.addfinalizer(kernel.shutdown)
+    kernel = Kernel()
+    request.addfinalizer(lambda: kernel.run(shutdown=True))
     return kernel
