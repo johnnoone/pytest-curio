@@ -19,7 +19,6 @@ setup(
     long_description=long_description,
     classifiers=[
         "Intended Audience :: Developers",
-        "Framework :: Curio",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.8",
         "Topic :: Software Development :: Testing",
