@@ -20,8 +20,7 @@ pytest-curio has been strongly influenced by pytest-asyncio_.
 Features
 --------
 
-- fixtures for creating and injecting versions of the curio kernel
-- fixtures for injecting unused tcp ports
+- fixtures for injecting curio kernel
 - pytest markers for treating tests as curio coroutines
 
 
