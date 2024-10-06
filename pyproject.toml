@@ -1,0 +1,10 @@
+[tool.versioneer]
+VCS = "git"
+style = "pep440"
+versionfile_source = "pytest_curio/_version.py"
+versionfile_build = "pytest_curio/_version.py"
+tag_prefix = "v"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
